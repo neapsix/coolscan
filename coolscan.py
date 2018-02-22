@@ -45,51 +45,38 @@ def get_input(text):
         # limit input string to 25 characters--we're creating file names here
         return data[:25]
 
-def create_file_name(elements):
-    # add today's date, the first element
-    elements.insert(0, strftime('%Y%d%m'))
+def create_file_names(user_list):
+    file_names = []
+
+    # get the first frame and the last frame
+    endpoints = user_list[2].split("-", 1)
+    endpoints = list(map(int, endpoints))
+
+    # if they don't specify an endpoint, assume six frames
+    #if len(endpoints) is 1:
+    #    endpoints.append(endpoints[0] + 6)
+
+    user_list.insert(0, strftime('%Y%d%m'))
 
     # add a leading zero to make a two-digit serial (for dumb file sorting)
-    elements[1] = elements[1].zfill(2)
+    user_list[1] = user_list[1].zfill(2)
 
-    # add the batch page number and file extension, the last element
-    elements.append('%d.TIFF')
+    # put together a string out of the user inputs, but leave out the range (i.e. 1-6, the last element in the list)
+    name_template = '_'.join(user_list[0:3])
 
-    # create and return a file name string
-    s = '_'.join(elements)
+    for i in range(endpoints[0], endpoints[1]):
+        # add the frame number with a leading 0
+        s = name_template + '_' + str(i).zfill(2)
 
-    return s
+        # add the file extension
+        s = s + '.' + static_parameters['--format'].upper()
 
-def parse_scanner_parameters(user_list):
+        # add each file name to the list of file names
+        file_names.append(s)
 
-    # start with the static parameters configured at the top of the file
-    params = static_parameters
 
-    # parse the batch parameter, which determines file name format
-    file_name = create_file_name(user_list[0:2])
+    return file_names
 
-    # parse the frame-count and batch-start parameters
-    strings = user_list[2].split("-", 1)
-
-    # check whether there is an ending frame
-    if len(strings) == 1:
-        # if no ending frame, assume a strip of six frames
-        n = "6"
-    else:
-        # otherwise, calculate the number of frames
-        n = str(
-            int(strings[1]) - int(strings[0]) + 1
-        )
-
-    params.update(
-        {
-            '--batch': file_name,
-            '--batch-start': strings[0],
-            '--batch-count': n
-        }
-    )
-
-    return params
 
 def build_command_args(params):
     # building this command:
@@ -133,6 +120,9 @@ while(1):
     # define the user parameters list
     user_parameters = []
 
+    # define the file_names list
+    file_names = []
+
     for i, line in enumerate(prompts):
         # reset everything when we're done looping over the prompts
         if i == 0:
@@ -146,16 +136,35 @@ while(1):
 
         user_parameters.append(param)
 
+    # TO DO: uncomment the media checking part [
     # check if the film is loaded successfully
-    if test_scanner_media() is True:
-        # if so, build the command and run it
-        all_params = parse_scanner_parameters(user_parameters)
+    #if test_scanner_media() is True:
+        # if so, build a list of filenames and run a series of commands
 
-        # Debug: to see the command that will be run, uncomment this line.
-        #print(build_command_args(all_params))
+    # TO DO: indent this part when finished. [[
 
-        run(build_command_args(all_params))
-    else:
+    file_names = create_file_names(user_parameters)
+    print(file_names)
+
+    for i, v in enumerate(file_names):
+        all_params = static_parameters
+
+        # add the scanner page number, starting at 1
+        all_params.update(
+            {
+                '--frame': str(i+1)
+            }
+        )
+
+        print(build_command_args(all_params))
+
+        #TO DO: figure out how to send the output to a file (like > filename)
+        #run(build_command_args(all_params), stdout=v)
+
+    # ]]
+
+    #else:
         # if not, print an error and let the user try again
-        reset = get_input("Film isn't loaded successfully. Enter r to reset the scanner press Enter to try again.\n\nReset? ")
-        if reset == 'r': reset_scanner()
+        #reset = get_input("Film isn't loaded successfully. Enter r to reset the scanner press Enter to try again.\n\nReset? ")
+        #if reset == 'r': reset_scanner()
+    # ]
