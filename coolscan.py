@@ -161,7 +161,7 @@ while(1):
                 }
             )
 
-            # build and run a command to scan. 
+            # build and run a command to scan.
             # send the output to a file open in write mode with the name we built.
             print('Scanning ' + v)
             run(build_command_args(all_params), stdout=open(v, 'w'))
