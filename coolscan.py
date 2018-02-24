@@ -30,7 +30,7 @@ static_parameters = {
 prompts = [
     'First, insert the film strip and verify that you see a steady green light.\n\nWhen the scanner is initialized, follow the prompts to enter information about the film strip you are scanning. Type quit at any prompt to quit.\n\nEnter the number of rolls you have scanned today. Files are named using a date, such as 2018_01_31, a serial number for rolls scanned today starting at 00, a film prefix, such as 400TX, and a frame number.\n\nRoll serial number: ',
     'Film prefix: ',
-    'Enter frame numbers you are scanning in ascending order, such as 0-6, 3, 8-8. If you don\'t enter an ending frame, the program scans six frames. To scan one frame, enter n-n. If you are scanning frame 00, enter 0-n, and manually rename the files.\n\nFrame numbers: '
+    'Enter frame numbers you are scanning in ascending or descending order, such as 0-6, 3, 36-30, or 1-1. If you are scanning frame 00, enter 0-n, and manually rename the files.\n\nFrame numbers: '
 ]
 
 def get_input(text):
@@ -52,9 +52,14 @@ def create_file_names(user_list):
     endpoints = user_list[2].split("-", 1)
     endpoints = list(map(int, endpoints))
 
-    # if they don't specify an endpoint, assume six frames
-    #if len(endpoints) is 1:
-    #    endpoints.append(endpoints[0] + 6)
+    # if the frames are backwards, like 6-1, then make the endpoints negative so we get a positive range
+    # we will use the absolute value to discard negative signs in the frame numbers below.
+    if len(range(endpoints[0], endpoints[1])) is 0:
+        endpoints = [-x for x in endpoints[0:2]]
+
+    # if they enter 1, assume they mean 1-1. the parsing logic depends on having two endpoints
+    if len(endpoints) is 1:
+        endpoints.append(endpoints[0])
 
     user_list.insert(0, strftime('%Y%d%m'))
 
@@ -64,9 +69,11 @@ def create_file_names(user_list):
     # put together a string out of the user inputs, but leave out the range (i.e. 1-6, the last element in the list)
     name_template = '_'.join(user_list[0:3])
 
-    for i in range(endpoints[0], endpoints[1]):
+    for i in range(endpoints[0], endpoints[1]+1):
+
         # add the frame number with a leading 0
-        s = name_template + '_' + str(i).zfill(2)
+        # use the absolute value of the frame number in case we made them negative above
+        s = name_template + '_' + str(abs(i)).zfill(2)
 
         # add the file extension
         s = s + '.' + static_parameters['--format'].upper()
@@ -138,33 +145,28 @@ while(1):
 
     # TO DO: uncomment the media checking part [
     # check if the film is loaded successfully
-    #if test_scanner_media() is True:
+    if test_scanner_media() is True:
         # if so, build a list of filenames and run a series of commands
 
-    # TO DO: indent this part when finished. [[
+        file_names = create_file_names(user_parameters)
+        print(file_names)
 
-    file_names = create_file_names(user_parameters)
-    print(file_names)
+        for i, v in enumerate(file_names):
+            all_params = static_parameters
 
-    for i, v in enumerate(file_names):
-        all_params = static_parameters
+            # add the scanner page number, starting at 1
+            all_params.update(
+                {
+                    '--frame': str(i+1)
+                }
+            )
 
-        # add the scanner page number, starting at 1
-        all_params.update(
-            {
-                '--frame': str(i+1)
-            }
-        )
+            # build and run a command to scan. 
+            # send the output to a file open in write mode with the name we built.
+            print('Scanning ' + v)
+            run(build_command_args(all_params), stdout=open(v, 'w'))
 
-        print(build_command_args(all_params))
-
-        #TO DO: figure out how to send the output to a file (like > filename)
-        #run(build_command_args(all_params), stdout=v)
-
-    # ]]
-
-    #else:
+    else:
         # if not, print an error and let the user try again
-        #reset = get_input("Film isn't loaded successfully. Enter r to reset the scanner press Enter to try again.\n\nReset? ")
-        #if reset == 'r': reset_scanner()
-    # ]
+        reset = get_input("Film isn't loaded successfully. Enter r to reset the scanner press Enter to try again.\n\nReset? ")
+        if reset == 'r': reset_scanner()
