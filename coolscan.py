@@ -118,6 +118,10 @@ def reset_scanner():
     reset_command = ['scanimage', '--reset', '--device-name', static_parameters['--device-name']]
     run(reset_command)
 
+def eject_scanner():
+    eject_command = ['scanimage', '--eject', '--device-name', static_parameters['--device-name']]
+    run(eject_command)
+
 while(1):
     # exit if this is Python 2 or earlier because input() is spooky in Python 2
     if not version_info[0] > 2:
@@ -165,6 +169,10 @@ while(1):
             # send the output to a file open in write mode with the name we built.
             print('Scanning ' + v)
             run(build_command_args(all_params), stdout=open(v, 'w'))
+
+        # eject the strip when it's done
+        print('Ejecting film strip.')
+        eject_scanner()
 
     else:
         # if not, print an error and let the user try again
