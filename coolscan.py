@@ -61,7 +61,7 @@ def create_file_names(user_list):
     if len(endpoints) is 1:
         endpoints.append(endpoints[0])
 
-    user_list.insert(0, strftime('%Y%d%m'))
+    user_list.insert(0, strftime('%Y%m%d'))
 
     # add a leading zero to make a two-digit serial (for dumb file sorting)
     user_list[1] = user_list[1].zfill(2)
